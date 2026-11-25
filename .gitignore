@@ -7,3 +7,5 @@ dist/
 .DS_Store
 backend/.env
 frontend/.env
+backend/build/
+backend/*.egg-info/
