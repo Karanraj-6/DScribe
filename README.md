@@ -1,111 +1,147 @@
-# Careflow — Patient Admission Management
+# Careflow - Patient Admission Management
 
-A responsive patient admission dashboard built for the DScribe Software Engineer Intern Round 1 task. Staff can add, view, edit, search and filter patients, mark them discharged, and delete records with confirmation.
+Patient Admission Management app for the DScribe Software Engineer Intern Round 1 task. Hospital staff can manage admitted patients, their ward and department assignments, and admission status.
 
-## Stack
+## Submission links
 
-- React + Vite frontend
-- FastAPI backend with Pydantic request and response models
-- Supabase PostgreSQL for persistent patient records
+- **GitHub:** [Karanraj-6/DScribe](https://github.com/Karanraj-6/DScribe)
+- **Live app:** [d-scribe-rouge.vercel.app](https://d-scribe-rouge.vercel.app/)
+- **Backend API docs:** [d-scribe-wx1d.vercel.app/docs](https://d-scribe-wx1d.vercel.app/docs)
+- **Backend readiness:** [API health and Supabase status](https://d-scribe-wx1d.vercel.app/api/health/ready)
 
-## Features
-
-- Create, list, update, and delete patient records
-- Filter by ward, department, doctor, and admission status
-- Search by patient name
-- Mark admitted patients as discharged
-- Validation in the UI and Pydantic, with database constraints on allowed values and numeric ranges
-- Mobile, tablet, and desktop layouts
-- No login or signup flow, as allowed by the task
+The live frontend is connected to the deployed FastAPI backend and Supabase PostgreSQL.
 
 ## Screenshots
 
-Capture screenshots of the running app before publishing the repository. Suggested views are the patient directory and the add/edit patient form.
+### Patient directory
 
-## Local setup
+![Careflow patient directory with search, ward, department, doctor, and status filters](image1.png)
 
-### 1. Create the Supabase table
+### Add patient form
 
-Create a Supabase project, then apply [`supabase/schema.sql`](supabase/schema.sql) in either of these ways. Option A: paste it into the Supabase SQL Editor and run it. Option B: use the code migration below with a PostgreSQL connection URI. This creates the `patients` table, field constraints, indexes, and update timestamp trigger. Records then persist across API restarts.
+![Careflow add patient form with required patient and admission fields](image2.png)
 
-### 2. Configure the API
+## Technology stack
 
-```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env
-```
+- **Frontend:** React.js with Vite
+- **Backend:** Python FastAPI with Pydantic v2
+- **Database:** Supabase PostgreSQL
+- **Backend deployment:** Vercel Python runtime
+- **Frontend deployment:** Vercel
 
-Edit `backend/.env` with the Supabase project URL and **secret** key. Keep the secret key server-side and out of source control. The publishable key and JWKS URL are unused because requests go through FastAPI and this task has no login. For code-based schema setup, copy the PostgreSQL connection URI from Supabase Dashboard > Connect into `DATABASE_URL` in `backend/.env` (this is separate from the API secret key), install requirements with `python -m pip install -r requirements.txt`, then run `python scripts/apply_schema.py` from `backend`. Use the exact URI shown in the dashboard; it contains the database password and must stay in `.env`. The migration uses pg8000 over TLS and sends the complete SQL file to PostgreSQL without splitting function bodies. It does not run automatically on API startup.
+## Patient fields
 
-Run the API:
+| Field | Rules and values |
+| --- | --- |
+| Name | Required; English letters and spaces between name parts |
+| Age | Required whole number from 0 to 120 |
+| Gender | Required selection: Female, Male, or Other |
+| Ward | Required selection from the available ward list |
+| Department | Required selection from the available department list |
+| Doctor | Required selection from the available doctor list |
+| Admission date | Required; today or an earlier date in India Standard Time |
+| Status | Admitted or Discharged; new patients start as Admitted |
 
-```powershell
-uvicorn app.main:app --reload --port 8000
-```
+## Required features
 
-API docs: <http://localhost:8000/docs>
-
-### 3. Configure and run React
-
-```powershell
-cd frontend
-npm install
-```
-
-Optional: create `frontend/.env` and set the API origin for a deployed backend:
-
-```text
-VITE_API_URL=https://your-api.example.com
-```
-
-Start the app:
-
-```powershell
-npm run dev
-```
-
-Open <http://localhost:5173>.
+- Add and view patient records
+- Search patients by name
+- Filter by ward, department, and doctor; the directory also supports status filtering
+- Edit patient details
+- Delete a patient after confirmation
+- Mark an admitted patient as discharged
+- Responsive layout for mobile, tablet, and desktop
+- No login or signup, as permitted by the task
 
 ## Validation
 
-- Name: required; English letters, with spaces between name parts
-- Age: required whole number from 0 to 120
-- Gender, ward, department, doctor: required values from the API-provided lists
-- Admission date: required and cannot be later than today in India Standard Time
-- Status: `Admitted` or `Discharged`
+The frontend and backend both validate patient input. FastAPI uses Pydantic models, and PostgreSQL also enforces the allowed values and numeric ranges. Invalid backend requests return HTTP 422 with a clear field error.
 
-The API returns clear field errors for invalid requests. The UI also checks the fields before submitting.
+- Name is required and accepts letters with spaces between name parts.
+- Age is required and must be a whole number from 0 to 120.
+- Gender, ward, department, and doctor are required selections from the allowed lists.
+- Admission date is required and cannot be in the future.
+- Status is limited to `Admitted` or `Discharged`.
 
-## API
+## Run locally
+
+Prerequisites: Python 3.12, Node.js with npm, `uv`, and a Supabase project.
+
+### 1. Create the database table
+
+For a new Supabase project, apply [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL Editor. Alternatively, run the migration script as described below. The schema creates the `patients` table, constraints, indexes, and the update timestamp trigger. Patient data is stored in Supabase and persists across API restarts.
+
+### 2. Configure and run the FastAPI backend
+
+In PowerShell:
+
+```powershell
+cd backend
+Copy-Item .env.example .env
+```
+
+Set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in `backend/.env`. Keep secret keys out of GitHub. `FRONTEND_ORIGINS` should include `http://localhost:5173` for local development.
+
+Install the Python dependencies and start the API:
+
+```powershell
+uv sync
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+Local API docs: <http://localhost:8000/docs>
+
+The Supabase schema is already applied for the live project. To apply it to another database using the migration script, set `DATABASE_URL` in `backend/.env` to the PostgreSQL connection URI from Supabase Dashboard > Connect, then run this from `backend`:
+
+```powershell
+uv run python scripts/apply_schema.py
+```
+
+`DATABASE_URL` contains the database password and is only needed for migrations; the API uses the Supabase project URL and server-side secret key at runtime. The migration uses pg8000 over TLS and submits the complete SQL file without splitting statements.
+
+### 3. Configure and run the React frontend
+
+In a second PowerShell window:
+
+```powershell
+cd frontend
+Copy-Item .env.example .env
+npm ci
+npm run dev
+```
+
+Open <http://localhost:5173>. The local `.env.example` points the frontend to `http://localhost:8000`.
+
+## Vercel deployment
+
+The frontend and backend are separate Vercel projects from this repository:
+
+- **Frontend project:** Root Directory `frontend`.
+- **Backend project:** Root Directory `backend`; FastAPI framework. `api/index.py` exports the app from `app.main`, and `vercel.json` selects FastAPI.
+
+The backend Vercel project needs these environment variables:
+
+- `SUPABASE_URL`
+- `SUPABASE_SECRET_KEY`
+- `FRONTEND_ORIGINS=https://d-scribe-rouge.vercel.app`
+
+The production frontend API origin is set in [`frontend/.env.production`](frontend/.env.production). For another frontend deployment, set `VITE_API_URL` to the backend origin (without an `/api` suffix) in the frontend Vercel project. The backend CORS setting must include that frontend's origin, without a trailing slash.
+
+## API routes
 
 | Method | Route | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/health` | Liveness check |
-| `GET` | `/api/health/ready` | Supabase readiness check |
-| `GET` | `/api/options` | Allowed dropdown values |
+| `GET` | `/api/health/ready` | Database readiness check |
+| `GET` | `/api/options` | Allowed gender, ward, department, and doctor values |
 | `GET` | `/api/patients` | List, search, and filter patients |
 | `POST` | `/api/patients` | Add a patient |
 | `PUT` | `/api/patients/{id}` | Edit patient details |
-| `PATCH` | `/api/patients/{id}/status` | Update admission status |
+| `PATCH` | `/api/patients/{id}/status` | Mark a patient admitted or discharged |
 | `DELETE` | `/api/patients/{id}` | Delete a patient |
 
-Filters accepted by `GET /api/patients`: `search`, `ward`, `department`, `doctor`, and `status`.
+`GET /api/patients` accepts `search`, `ward`, `department`, `doctor`, `status`, `limit`, and `offset` query parameters.
 
-## Vercel deployment
+## Submit
 
-Deploy the frontend and backend as separate Vercel projects from this repository. The frontend project uses `frontend` as its Root Directory. For the backend project, use `backend` as its Root Directory and select the FastAPI framework preset. `backend/api/index.py` exports the FastAPI app from `app.main`; `backend/vercel.json` selects Vercel's FastAPI framework, and `.python-version` pins the runtime to Python 3.12.
-
-Set these environment variables in the backend Vercel project:
-
-- `SUPABASE_URL`
-- `SUPABASE_SECRET_KEY`
-- `FRONTEND_ORIGINS` with the deployed frontend origin, without a trailing slash
-
-The Supabase schema has been applied. `DATABASE_URL` is needed only when running `python scripts/apply_schema.py` to apply migrations; it is not needed by the API at runtime.
-
-After the backend deploys, test `https://<backend-domain>/api/health/ready`. Then set `VITE_API_URL` in the frontend Vercel project to the backend origin (for example, `https://<backend-domain>`, without an `/api` suffix) and redeploy the frontend. The published frontend currently has the local API fallback in its bundle until that variable is set for a new Vercel build.
-
-Frontend project URL: <https://d-scribe-rouge.vercel.app/>. Add the working backend URL and screenshots here after the backend deployment.
+Email the GitHub repository and live app links to `pramod@dscribe.in` and `suhasm@dscribe.in`. Use your full name in the email subject. The task deadline is Wednesday, 25 November 2026, 11:59 PM IST.
