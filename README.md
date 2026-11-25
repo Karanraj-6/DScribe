@@ -34,11 +34,11 @@ Create a Supabase project, then apply [`supabase/schema.sql`](supabase/schema.sq
 cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Edit `backend/.env` with the Supabase project URL and **secret** key. Keep the secret key server-side and out of source control. The publishable key and JWKS URL are unused because requests go through FastAPI and this task has no login. For code-based schema setup, copy the PostgreSQL connection URI from Supabase Dashboard > Connect into `SUPABASE_DB_URL` in `backend/.env` (this is separate from the API secret key), install requirements, then run `python scripts/apply_schema.py` from `backend`. Use the exact URI shown in the dashboard; it contains the database password and must stay in `.env`. The script applies the checked-in schema and does not run automatically on API startup.
+Edit `backend/.env` with the Supabase project URL and **secret** key. Keep the secret key server-side and out of source control. The publishable key and JWKS URL are unused because requests go through FastAPI and this task has no login. For code-based schema setup, copy the PostgreSQL connection URI from Supabase Dashboard > Connect into `DATABASE_URL` in `backend/.env` (this is separate from the API secret key), install requirements with `python -m pip install -r requirements.txt`, then run `python scripts/apply_schema.py` from `backend`. Use the exact URI shown in the dashboard; it contains the database password and must stay in `.env`. The migration uses pg8000 over TLS and sends the complete SQL file to PostgreSQL without splitting function bodies. It does not run automatically on API startup.
 
 Run the API:
 
@@ -94,8 +94,18 @@ The API returns clear field errors for invalid requests. The UI also checks the 
 
 Filters accepted by `GET /api/patients`: `search`, `ward`, `department`, `doctor`, and `status`.
 
-## Deployment and submission
+## Vercel deployment
 
-Deploy the FastAPI app on a Python-compatible host and the Vite frontend on a static host. Set `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, and `FRONTEND_ORIGINS` on the backend host; set `VITE_API_URL` on the frontend host. Run the SQL schema once in Supabase. Add the public repository URL, live app URL, and actual screenshots to this README after deployment.
+Deploy the frontend and backend as separate Vercel projects from this repository. The frontend project uses `frontend` as its Root Directory. For the backend project, use `backend` as its Root Directory and select the FastAPI framework preset. `backend/api/index.py` exports the FastAPI app from `app.main`; `backend/vercel.json` selects Vercel's FastAPI framework, and `.python-version` pins the runtime to Python 3.12.
 
-This source workspace has not been published or deployed, so public GitHub and live URLs are not included yet.
+Set these environment variables in the backend Vercel project:
+
+- `SUPABASE_URL`
+- `SUPABASE_SECRET_KEY`
+- `FRONTEND_ORIGINS` with the deployed frontend origin, without a trailing slash
+
+The Supabase schema has been applied. `DATABASE_URL` is needed only when running `python scripts/apply_schema.py` to apply migrations; it is not needed by the API at runtime.
+
+After the backend deploys, test `https://<backend-domain>/api/health/ready`. Then set `VITE_API_URL` in the frontend Vercel project to the backend origin (for example, `https://<backend-domain>`, without an `/api` suffix) and redeploy the frontend. The published frontend currently has the local API fallback in its bundle until that variable is set for a new Vercel build.
+
+Frontend project URL: <https://d-scribe-rouge.vercel.app/>. Add the working backend URL and screenshots here after the backend deployment.
